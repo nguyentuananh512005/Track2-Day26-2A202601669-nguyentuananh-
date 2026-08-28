@@ -45,6 +45,8 @@ from eval.prosecute import (
     CLASSES,
     DEFAULT_FIXTURES_DIR,
     MAX_ARGUMENT_CHARS,
+    MAX_EXPECTED_CHARS,
+    MAX_OBSERVED_CHARS,
     MAX_CLAIMS,
     ProsecutionBudget,
     anchor_ref,
@@ -59,6 +61,10 @@ from eval.prosecute import (
     span_ref,
     split_sentences,
     weight_of,
+    _hook_wasteful,
+    _hook_incoherent,
+    _hook_unsupported_precision,
+    _schema_errors,
 )
 from fixtures.prosecution.build_fixtures import build_all_fixtures
 
@@ -168,6 +174,40 @@ def test_prosecution_budget_raises_on_argument_too_long():
     b = ProsecutionBudget()
     with pytest.raises(ValueError):
         b.try_add(cls="enforcement_failure", evidence=[evt_ref(1)], expected="e", observed="o", argument="x" * (MAX_ARGUMENT_CHARS + 1))
+
+
+def test_prosecution_budget_raises_on_expected_too_long():
+    b = ProsecutionBudget()
+    with pytest.raises(ValueError):
+        b.try_add(cls="enforcement_failure", evidence=[evt_ref(1)], expected="e" * (MAX_EXPECTED_CHARS + 1), observed="o", argument="a")
+
+
+def test_prosecution_budget_raises_on_observed_too_long():
+    b = ProsecutionBudget()
+    with pytest.raises(ValueError):
+        b.try_add(cls="enforcement_failure", evidence=[evt_ref(1)], expected="e", observed="o" * (MAX_OBSERVED_CHARS + 1), argument="a")
+
+
+def test_schema_errors_rejects_expected_and_observed_too_long():
+    valid_claim = {
+        "cls": "enforcement_failure",
+        "evidence": [evt_ref(1)],
+        "expected": "e" * (MAX_EXPECTED_CHARS + 1),
+        "observed": "o",
+        "argument": "a",
+    }
+    errs = _schema_errors(valid_claim)
+    assert any(f"expected must be <= {MAX_EXPECTED_CHARS}" in e for e in errs)
+
+    valid_claim2 = {
+        "cls": "enforcement_failure",
+        "evidence": [evt_ref(1)],
+        "expected": "e",
+        "observed": "o" * (MAX_OBSERVED_CHARS + 1),
+        "argument": "a",
+    }
+    errs2 = _schema_errors(valid_claim2)
+    assert any(f"observed must be <= {MAX_OBSERVED_CHARS}" in e for e in errs2)
 
 
 # ---------------------------------------------------------------------------
@@ -531,32 +571,89 @@ def test_prosecute_stays_well_under_the_five_second_deadline_even_on_a_large_tra
     assert result["v"] == 1
 
 
-def test_starter_end_to_end_against_the_full_fixture_set(labelled_fixtures):
+def test_full_prosecutor_end_to_end_against_the_full_fixture_set(labelled_fixtures):
     report = score_prosecutor(prosecute, labelled_fixtures)
 
     assert report["n_fixtures"] == len(labelled_fixtures)
     assert report["n_errors"] == 0
     assert report["n_timeouts"] == 0
-    assert report["false"] == 0, "the starter's one detector must never file a false claim on this fixture set"
-    assert report["rejected"] == 0, "the starter must never emit a schema-invalid or over-quota claim on its own"
+    assert report["false"] == 0, "the prosecutor must never file a false claim on this fixture set"
+    assert report["rejected"] == 0, "the prosecutor must never emit a schema-invalid or over-quota claim on its own"
+    assert report["unproven"] == 0, "all filed claims must be fully proven by ground truth proof_refs"
 
-    # precision perfect: it never guesses wrong when it does file
+    # precision and recall are perfect (1.0 = 100%)
     assert report["precision"] == 1.0
-    # recall low: it implements exactly 1 of 17 classes
-    assert 0.0 < report["recall"] < 0.15
+    assert report["recall"] >= 0.85
+    assert report["f1"] >= 0.85
     assert report["false_claim_rate"] == 0.0
 
-    assert report["per_class"]["enforcement_failure"]["recall"] == 1.0
-    assert report["per_class"]["enforcement_failure"]["present"] == 2
-    assert report["per_class"]["enforcement_failure"]["verified"] == 2
-    # every other class: present in the fixtures, but never claimed (stub hooks)
-    for cls in CLASSES - {"enforcement_failure"}:
+    # all 17 classes: present in the fixtures, claimed and verified
+    for cls in CLASSES:
         assert report["per_class"][cls]["present"] >= 2
-        assert report["per_class"][cls]["claimed"] == 0
+        assert report["per_class"][cls]["claimed"] >= 2
+        assert report["per_class"][cls]["verified"] >= 2
+        assert report["per_class"][cls]["recall"] == 1.0
 
 
-def test_starter_files_nothing_on_clean_fixtures(labelled_fixtures):
+def test_prosecutor_files_nothing_on_clean_fixtures(labelled_fixtures):
     clean = [fx for fx in labelled_fixtures if not fx["label"]["present_classes"]]
     for fx in clean:
         result = prosecute(fx["trace"], fx["answer"], fx["card"])
-        assert result["claims"] == [], f"{fx['fixture_id']} is clean but the starter filed {result['claims']}"
+        assert result["claims"] == [], f"{fx['fixture_id']} is clean but prosecutor filed {result['claims']}"
+
+
+def test_hook_wasteful_ignores_transient_error_retries():
+    # Retry after transient error (timeout, rate_limit) is allowed and must NOT be flagged
+    trace = [
+        {"v": 1, "layer": 1, "seq": 0, "type": "exchange_start", "p": {}},
+        {"v": 1, "layer": 1, "seq": 1, "type": "command", "p": {"server": "registry", "tool": "list_servers", "args": {}}},
+        {"v": 1, "layer": 1, "seq": 2, "type": "tool_result", "p": {"ok": False, "error_code": "timeout"}},
+        {"v": 1, "layer": 1, "seq": 3, "type": "command", "p": {"server": "registry", "tool": "list_servers", "args": {}}},
+        {"v": 1, "layer": 1, "seq": 4, "type": "tool_result", "p": {"ok": True, "n_rows": 1, "anchors": []}},
+    ]
+    hits = _hook_wasteful(trace, {"text": "ok"}, {})
+    assert hits == []
+
+
+def test_hook_wasteful_flags_permanent_error_retries():
+    # Retry after permanent error (bad_request) is wasteful and MUST be flagged
+    trace = [
+        {"v": 1, "layer": 1, "seq": 0, "type": "exchange_start", "p": {}},
+        {"v": 1, "layer": 1, "seq": 1, "type": "command", "p": {"server": "registry", "tool": "list_servers", "args": {}}},
+        {"v": 1, "layer": 1, "seq": 2, "type": "tool_result", "p": {"ok": False, "error_code": "bad_request"}},
+        {"v": 1, "layer": 1, "seq": 3, "type": "command", "p": {"server": "registry", "tool": "list_servers", "args": {}}},
+        {"v": 1, "layer": 1, "seq": 4, "type": "tool_result", "p": {"ok": False, "error_code": "bad_request"}},
+    ]
+    hits = _hook_wasteful(trace, {"text": "ok"}, {})
+    assert len(hits) == 1
+    assert hits[0]["cls"] == "wasteful"
+    assert hits[0]["evidence"] == ["evt:0003"]
+
+
+def test_hook_incoherent_does_not_flag_extra_clarifying_numbers():
+    # Sentence 2 adds extra details (e.g. 2 modules) but is completely consistent on canonical frame count (31)
+    trace = [{"v": 1, "layer": 1, "seq": 0, "type": "exchange_start", "p": {}},
+             {"v": 1, "layer": 1, "seq": 1, "type": "answer", "p": {"text": "Day 18 canonical has 31 content frames. Specifically, Day 18 canonical has 31 content frames across 2 modules."}}]
+    hits = _hook_incoherent(trace, {"text": "Day 18 canonical has 31 content frames. Specifically, Day 18 canonical has 31 content frames across 2 modules."}, {})
+    assert hits == []
+
+
+def test_hook_incoherent_flags_genuine_contradictions():
+    # Contradicting canonical frame counts (31 vs 45)
+    trace = [{"v": 1, "layer": 1, "seq": 0, "type": "exchange_start", "p": {}},
+             {"v": 1, "layer": 1, "seq": 1, "type": "answer", "p": {"text": "Day 18 canonical has 31 content frames. Day 18 canonical has 45 content frames, more than the working deck."}}]
+    hits = _hook_incoherent(trace, {"text": "Day 18 canonical has 31 content frames. Day 18 canonical has 45 content frames, more than the working deck."}, {})
+    assert len(hits) == 1
+    assert hits[0]["cls"] == "incoherent"
+    assert hits[0]["evidence"] == ["answer.span:0", "answer.span:1"]
+
+
+def test_hook_unsupported_precision_ignores_version_numbers():
+    # Text mentions version 2.0 or v1.23, which are NOT unsupported precision on approximate quantities
+    trace = [
+        {"v": 1, "layer": 1, "seq": 0, "type": "exchange_start", "p": {}},
+        {"v": 1, "layer": 1, "seq": 1, "type": "tool_result", "p": {"ok": True, "rows": [{"body": "roughly 100 cases"}]}},
+        {"v": 1, "layer": 1, "seq": 2, "type": "answer", "p": {"text": "Upgraded to v1.23 and version 2.0 with 100 cases."}},
+    ]
+    hits = _hook_unsupported_precision(trace, {"text": "Upgraded to v1.23 and version 2.0 with 100 cases."}, {})
+    assert hits == []

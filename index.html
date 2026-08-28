@@ -1,0 +1,387 @@
+﻿<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>COLOSSEUM AGENT ARENA — Đấu Trường Agent 2026</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;800&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #07090e;
+      --card-bg: #0f141f;
+      --card-border: #1e293b;
+      --accent-teal: #00f2fe;
+      --accent-cyan: #4facfe;
+      --accent-green: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-rose: #f43f5e;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      background: linear-gradient(180deg, rgba(15,23,42,0.9) 0%, rgba(7,9,14,0.8) 100%);
+      border-bottom: 1px solid var(--card-border);
+      padding: 1.25rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      backdrop-filter: blur(12px);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .logo-box {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, var(--accent-teal), var(--accent-cyan));
+      color: #000;
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 0.85rem;
+      padding: 0.35rem 0.65rem;
+      border-radius: 6px;
+      letter-spacing: 0.5px;
+    }
+
+    .logo-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(90deg, #fff, #94a3b8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .user-pill {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      background: #1e293b;
+      padding: 0.4rem 0.8rem;
+      border-radius: 999px;
+      border: 1px solid #334155;
+      color: var(--accent-teal);
+    }
+
+    main {
+      flex: 1;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 2rem;
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 2rem;
+    }
+
+    @media (max-width: 1024px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .sidebar {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .stat-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      padding: 1.25rem;
+    }
+
+    .stat-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .stat-item {
+      background: #090d16;
+      border: 1px solid #1e293b;
+      padding: 0.75rem;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: var(--accent-green);
+    }
+
+    .stat-lbl {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .match-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.6rem;
+    }
+
+    .match-btn {
+      background: #090d16;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      padding: 1rem;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+
+    .match-btn:hover, .match-btn.active {
+      border-color: var(--accent-teal);
+      background: #111a2e;
+      box-shadow: 0 0 15px rgba(0, 242, 254, 0.15);
+      transform: translateY(-2px);
+    }
+
+    .match-btn-title {
+      font-weight: 700;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .match-btn-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .match-btn-tag {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-green);
+    }
+
+    .screen-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .arena-frame-box {
+      background: #000;
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      overflow: hidden;
+      aspect-ratio: 960 / 700;
+      position: relative;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+    }
+
+    .view-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 0.75rem 1.25rem;
+      border-radius: 10px;
+    }
+
+    .btn-group {
+      display: flex;
+      gap: 0.75rem;
+    }
+
+    .action-btn {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.85rem;
+      font-weight: 600;
+      background: #1e293b;
+      border: 1px solid #334155;
+      color: #fff;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: background 0.2s;
+    }
+
+    .action-btn:hover {
+      background: var(--accent-teal);
+      color: #000;
+      border-color: var(--accent-teal);
+    }
+
+    footer {
+      border-top: 1px solid var(--card-border);
+      padding: 1.5rem;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      background: #05070a;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="logo-box">
+      <span class="logo-badge">DAY 26</span>
+      <h1 class="logo-title">COLOSSEUM AGENT ARENA</h1>
+    </div>
+    <div class="user-pill">
+      ID: 2A202601669 — Nguyễn Tuấn Anh
+    </div>
+  </header>
+
+  <main>
+    <div class="sidebar">
+      <div class="stat-card">
+        <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-teal);">🏆 Hiệu Năng Đấu Trường</h3>
+        <div class="stat-grid">
+          <div class="stat-item">
+            <div class="stat-val">100%</div>
+            <div class="stat-lbl">TỶ LỆ THẮNG</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">100/100</div>
+            <div class="stat-lbl">MÁU BẢO TOÀN</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">1.000</div>
+            <div class="stat-lbl">F1 PROSECUTOR</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-val">0 / 39</div>
+            <div class="stat-lbl">KIT VIOLATIONS</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <h3 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--accent-teal); margin-bottom: 1rem;">⚔️ Chọn Trận Đấu Replay</h3>
+        <div class="match-list">
+          <button class="match-btn active" onclick="loadMatch('runs/spar-adversary-1371/events.jsonl', this)">
+            <div>
+              <div class="match-btn-title">🔥 vs ADVERSARY (Hiệp 7 K.O)</div>
+              <div class="match-btn-desc">Tốc độ hạ gục kỷ lục — 100% Máu</div>
+            </div>
+            <span class="match-btn-tag">100 — 0</span>
+          </button>
+
+          <button class="match-btn" onclick="loadMatch('runs/spar-adversary-1647/events.jsonl', this)">
+            <div>
+              <div class="match-btn-title">⚡ vs ADVERSARY (Hiệp 7 K.O)</div>
+              <div class="match-btn-desc">Dồn sát thương 22 dmg/hiệp</div>
+            </div>
+            <span class="match-btn-tag">100 — 0</span>
+          </button>
+
+          <button class="match-btn" onclick="loadMatch('runs/spar-adversary-33/events.jsonl', this)">
+            <div>
+              <div class="match-btn-title">🔴 vs ADVERSARY (Seed 33)</div>
+              <div class="match-btn-desc">Bảo toàn 100 HP tuyệt đối</div>
+            </div>
+            <span class="match-btn-tag">100 — 0</span>
+          </button>
+
+          <button class="match-btn" onclick="loadMatch('runs/spar-operator-1/events.jsonl', this)">
+            <div>
+              <div class="match-btn-title">🟡 vs OPERATOR (Hiệp 6 K.O)</div>
+              <div class="match-btn-desc">Bắt trọn lỗi Confused Deputy</div>
+            </div>
+            <span class="match-btn-tag">100 — 0</span>
+          </button>
+
+          <button class="match-btn" onclick="loadMatch('runs/spar-rookie-1/events.jsonl', this)">
+            <div>
+              <div class="match-btn-title">🟢 vs ROOKIE (Hiệp 6 K.O)</div>
+              <div class="match-btn-desc">Hạ gục đối thủ sơ cấp</div>
+            </div>
+            <span class="match-btn-tag">100 — 0</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="screen-container">
+      <div class="arena-frame-box">
+        <iframe id="arenaFrame" src="spar.html?replay=runs/spar-adversary-1371/events.jsonl"></iframe>
+      </div>
+
+      <div class="view-actions">
+        <div>
+          <span style="font-weight: 600; color: var(--text-main);" id="matchTitle">Trận Đấu: vs ADVERSARY (Hiệp 7 K.O - 100% Full Máu)</span>
+        </div>
+        <div class="btn-group">
+          <a id="fullSparLink" href="spar.html?replay=runs/spar-adversary-1371/events.jsonl" target="_blank" class="action-btn">
+            Mở Toàn Màn Hình ↗
+          </a>
+          <a id="projectorLink" href="projector.html?replay=runs/spar-adversary-1371/events.jsonl" target="_blank" class="action-btn">
+            Chế Độ Máy Chiếu 🎥
+          </a>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    Track 2 Day 26: Colosseum Agent Arena • Nguyễn Tuấn Anh (2A202601669) • 100% Standard Library
+  </footer>
+
+  <script>
+    function loadMatch(path, btn) {
+      document.querySelectorAll('.match-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      const frame = document.getElementById('arenaFrame');
+      const fullLink = document.getElementById('fullSparLink');
+      const projLink = document.getElementById('projectorLink');
+      const title = document.getElementById('matchTitle');
+
+      const sparUrl = `spar.html?replay=${path}`;
+      const projUrl = `projector.html?replay=${path}`;
+
+      frame.src = sparUrl;
+      fullLink.href = sparUrl;
+      projLink.href = projUrl;
+      title.textContent = "Trận Đấu: " + btn.querySelector('.match-btn-title').textContent;
+    }
+  </script>
+</body>
+</html>
