@@ -1,0 +1,72 @@
+[
+ {
+  "round": 1,
+  "hp_you": 100,
+  "hp_bot": 90,
+  "took": 0,
+  "dealt": 10
+ },
+ {
+  "round": 2,
+  "hp_you": 100,
+  "hp_bot": 80,
+  "took": 0,
+  "dealt": 10
+ },
+ {
+  "round": 3,
+  "hp_you": 100,
+  "hp_bot": 80,
+  "took": 0,
+  "dealt": 0
+ },
+ {
+  "round": 4,
+  "hp_you": 90,
+  "hp_bot": 58,
+  "took": 10,
+  "dealt": 22
+ },
+ {
+  "round": 5,
+  "hp_you": 90,
+  "hp_bot": 48,
+  "took": 0,
+  "dealt": 10
+ },
+ {
+  "round": 6,
+  "hp_you": 90,
+  "hp_bot": 36,
+  "took": 0,
+  "dealt": 12
+ },
+ {
+  "round": 7,
+  "hp_you": 90,
+  "hp_bot": 36,
+  "took": 0,
+  "dealt": 0
+ },
+ {
+  "round": 8,
+  "hp_you": 90,
+  "hp_bot": 24,
+  "took": 0,
+  "dealt": 12
+ },
+ {
+  "round": 9,
+  "hp_you": 90,
+  "hp_bot": 9,
+  "took": 0,
+  "dealt": 15
+ },
+ {
+  "round": 10,
+  "hp_you": 90,
+  "hp_bot": 0,
+  "took": 0,
+  "dealt": 12
+ }
+]
